@@ -87,6 +87,7 @@ $srcDir = Join-Path $PSScriptRoot 'src'
 Copy-Item (Join-Path $srcDir 'telemetry-hook.ps1') $dest -Force
 Copy-Item (Join-Path $srcDir 'desktop-watcher.ps1') $dest -Force
 Copy-Item (Join-Path $srcDir 'self-update.ps1') $dest -Force
+Copy-Item (Join-Path $srcDir 'run-hidden.vbs') $dest -Force
 
 $config = @{
     endpoint    = $Endpoint
@@ -172,14 +173,16 @@ $settingsJson = $settings | ConvertTo-Json -Depth 64
 Write-Step '[3/4] Hooks do Claude Code configurados (backup em settings.json.bak-hpx-telemetry)'
 
 # 4. Tarefas agendadas (nivel de usuario, sem admin)
+# Lancadas via wscript + run-hidden.vbs pra rodar SEM flash de janela de console.
 $watcherScript = Join-Path $dest 'desktop-watcher.ps1'
 $updateScript  = Join-Path $dest 'self-update.ps1'
+$hiddenVbs     = Join-Path $dest 'run-hidden.vbs'
 
-$trWatcher = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$watcherScript\`""
+$trWatcher = "wscript.exe \`"$hiddenVbs\`" \`"$watcherScript\`""
 schtasks /Create /F /SC MINUTE /MO 15 /TN $WatcherTask /TR $trWatcher | Out-Null
 $watcherOk = ($LASTEXITCODE -eq 0)
 
-$trUpdater = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$updateScript\`""
+$trUpdater = "wscript.exe \`"$hiddenVbs\`" \`"$updateScript\`""
 schtasks /Create /F /SC DAILY /ST 12:30 /TN $UpdaterTask /TR $trUpdater | Out-Null
 $updaterOk = ($LASTEXITCODE -eq 0)
 
