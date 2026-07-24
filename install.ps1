@@ -176,7 +176,7 @@ $watcherScript = Join-Path $dest 'desktop-watcher.ps1'
 $updateScript  = Join-Path $dest 'self-update.ps1'
 
 $trWatcher = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$watcherScript\`""
-schtasks /Create /F /SC MINUTE /MO 5 /TN $WatcherTask /TR $trWatcher | Out-Null
+schtasks /Create /F /SC MINUTE /MO 15 /TN $WatcherTask /TR $trWatcher | Out-Null
 $watcherOk = ($LASTEXITCODE -eq 0)
 
 $trUpdater = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$updateScript\`""
@@ -184,7 +184,7 @@ schtasks /Create /F /SC DAILY /ST 12:30 /TN $UpdaterTask /TR $trUpdater | Out-Nu
 $updaterOk = ($LASTEXITCODE -eq 0)
 
 if ($watcherOk -and $updaterOk) {
-    Write-Step '[4/4] Watcher do Desktop (5 min) e auto update (diario) agendados'
+    Write-Step '[4/4] Watcher do Desktop (15 min) e auto update (diario) agendados'
 } else {
     Write-Warn '[4/4] Aviso: alguma tarefa agendada falhou. O Claude Code segue coberto pelos hooks.'
 }
