@@ -14,6 +14,9 @@ Invoke-WebRequest -Uri 'https://github.com/harpix-Guilherme-Teixeira/hpx-telemet
 
 Expand-Archive -Path $zip -DestinationPath $tmp -Force
 
-& (Join-Path $tmp 'hpx-telemetry-develop\install.ps1')
+# Scripts baixados da internet carregam Mark of the Web e podem ser bloqueados
+# por politica RemoteSigned; desbloqueia e roda com Bypass de processo (sem admin).
+Get-ChildItem -Path $tmp -Recurse -Filter *.ps1 | Unblock-File -ErrorAction SilentlyContinue
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $tmp 'hpx-telemetry-develop\install.ps1')
 
 Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
