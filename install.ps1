@@ -200,7 +200,32 @@ try {
     }
 } catch {}
 
-# Cobertura imediata: se o Claude Desktop ja estiver aberto agora, registra sem esperar o primeiro tick
+# Inventario de MCPs configurados no Claude Code (~/.claude.json).
+# So os NOMES dos servidores MCP, nunca args/tokens/segredos.
+try {
+    $claudeJsonPath = Join-Path $env:USERPROFILE '.claude.json'
+    if (Test-Path $claudeJsonPath) {
+        $cj = Get-Content $claudeJsonPath -Raw | ConvertFrom-Json
+        $servers = @{}
+        if ($cj.mcpServers) { $cj.mcpServers.PSObject.Properties.Name | ForEach-Object { $servers[$_] = $true } }
+        if ($cj.projects) {
+            foreach ($proj in $cj.projects.PSObject.Properties) {
+                if ($proj.Value.mcpServers) {
+                    $proj.Value.mcpServers.PSObject.Properties.Name | ForEach-Object { $servers[$_] = $true }
+                }
+            }
+        }
+        if ($servers.Count -gt 0) {
+            Send-Row 'fac_usage_event' @{
+                nam_user = $Name; nam_email = $Email; nam_machine = $machine
+                nam_source = 'claude_code'; nam_event_type = 'mcp_inventory'
+                jsn_meta = @{ arr_mcps = @($servers.Keys); num_mcps = $servers.Count }
+            }
+        }
+    }
+} catch {}
+
+# Cobertura imediata: se algum app de IA ja estiver aberto agora, registra sem esperar o primeiro tick
 try {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $watcherScript | Out-Null
 } catch {}
