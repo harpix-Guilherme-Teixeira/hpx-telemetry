@@ -37,10 +37,11 @@ Pra remover tudo: `.\uninstall.ps1`
 
 | Campo | Exemplo |
 |---|---|
-| nome, email, máquina | Guilherme, gui@harpix.com.br, NOTE-GUI |
+| nome, email, máquina, time | Guilherme, gui@harpix.com.br, NOTE-GUI, Dados |
 | data e hora | via `now()` do banco |
+| IP de origem | carimbado pelo servidor (trigger no banco), o cliente não envia |
 | origem | claude_code ou claude_desktop |
-| tipo do evento | session_start, response, session_end, heartbeat, install |
+| tipo do evento | session_start, response, session_end, heartbeat, install, update |
 | sessão | id da sessão do Claude Code, ou derivada por gap no Desktop |
 | projeto | só o nome da pasta do repo (leaf do cwd) |
 | modelo e tokens | lidos do transcript local no evento Stop |

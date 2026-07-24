@@ -10,6 +10,7 @@
 param(
     [string]$Name,
     [string]$Email,
+    [string]$Team,
     [switch]$Silent
 )
 
@@ -38,16 +39,32 @@ if (-not $Silent) {
 }
 
 # Identidade: parametro > config existente (update) > pergunta interativa
-if ((-not $Name -or -not $Email) -and (Test-Path $configPath)) {
+if ((-not $Name -or -not $Email -or -not $Team) -and (Test-Path $configPath)) {
     try {
         $old = Get-Content $configPath -Raw | ConvertFrom-Json
         if (-not $Name)  { $Name  = $old.nam_user }
         if (-not $Email) { $Email = $old.nam_email }
+        if (-not $Team)  { $Team  = $old.nam_team }
     } catch {}
 }
 if (-not $Silent) {
     if (-not $Name)  { $Name  = Read-Host 'Seu nome completo' }
     if (-not $Email) { $Email = Read-Host 'Seu email harpix' }
+    if (-not $Team) {
+        $teams = @('Desenvolvimento', 'Dados', 'Marketing', 'Comercial', 'Produto')
+        Write-Host 'Em qual time voce atua?'
+        for ($i = 0; $i -lt $teams.Count; $i++) {
+            Write-Host ("  {0}. {1}" -f ($i + 1), $teams[$i])
+        }
+        Write-Host ("  {0}. Outro" -f ($teams.Count + 1))
+        $choice = Read-Host 'Numero do time'
+        $idx = 0
+        if ([int]::TryParse($choice, [ref]$idx) -and $idx -ge 1 -and $idx -le $teams.Count) {
+            $Team = $teams[$idx - 1]
+        } elseif ($idx -eq ($teams.Count + 1)) {
+            $Team = Read-Host 'Nome do seu time'
+        }
+    }
 }
 if (-not $Name -or -not $Email) {
     if (-not $Silent) { Write-Host 'Nome e email sao obrigatorios.' -ForegroundColor Red }
@@ -76,6 +93,7 @@ $config = @{
     api_key     = $ApiKey
     nam_user    = $Name
     nam_email   = $Email
+    nam_team    = $Team
     nam_machine = $machine
     version     = $version
 }
@@ -102,7 +120,7 @@ function Send-Row($table, $row) {
 
 try {
     Send-Row 'rec_collaborator' @{
-        nam_user = $Name; nam_email = $Email; nam_machine = $machine; nam_os = $os
+        nam_user = $Name; nam_email = $Email; nam_team = $Team; nam_machine = $machine; nam_os = $os
     }
     Write-Step '[2/4] Colaborador registrado no banco'
 } catch {
