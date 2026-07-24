@@ -83,20 +83,27 @@ $configJson = ConvertTo-Json $config -Depth 3
 [System.IO.File]::WriteAllText($configPath, $configJson, (New-Object System.Text.UTF8Encoding($false)))
 Write-Step "[1/4] Scripts e config em $dest"
 
-# 2. Registro do colaborador (ignora se essa maquina ja esta cadastrada)
-function Send-Row($table, $row, $extraQuery) {
+# 2. Registro do colaborador
+# Insert simples: o upsert do PostgREST (resolution=ignore-duplicates) exige policy
+# de SELECT, que a chave nao tem de proposito. Duplicata (409) e tratada como sucesso.
+function Send-Row($table, $row) {
     $json = ConvertTo-Json $row -Depth 5
     $body = [System.Text.Encoding]::UTF8.GetBytes($json)
-    $uri = "$Endpoint/rest/v1/$table$extraQuery"
-    $headers = @{ apikey = $ApiKey; Prefer = 'return=minimal,resolution=ignore-duplicates' }
-    Invoke-RestMethod -Method Post -Uri $uri -Headers $headers `
-        -ContentType 'application/json; charset=utf-8' -Body $body -TimeoutSec 10 | Out-Null
+    $headers = @{ apikey = $ApiKey; Prefer = 'return=minimal' }
+    try {
+        Invoke-RestMethod -Method Post -Uri "$Endpoint/rest/v1/$table" -Headers $headers `
+            -ContentType 'application/json; charset=utf-8' -Body $body -TimeoutSec 10 | Out-Null
+    } catch {
+        $status = $null
+        try { $status = [int]$_.Exception.Response.StatusCode } catch {}
+        if ($status -ne 409) { throw }
+    }
 }
 
 try {
     Send-Row 'rec_collaborator' @{
         nam_user = $Name; nam_email = $Email; nam_machine = $machine; nam_os = $os
-    } '?on_conflict=nam_email,nam_machine'
+    }
     Write-Step '[2/4] Colaborador registrado no banco'
 } catch {
     Write-Warn "[2/4] Aviso: nao consegui registrar agora ($($_.Exception.Message)). Siga em frente."
@@ -172,7 +179,7 @@ try {
         nam_user = $Name; nam_email = $Email; nam_machine = $machine
         nam_source = 'claude_code'; nam_event_type = $eventType
         jsn_meta = @{ nam_os = $os; str_version = $version }
-    } ''
+    }
 } catch {}
 
 # Cobertura imediata: se o Claude Desktop ja estiver aberto agora, registra sem esperar o primeiro tick
