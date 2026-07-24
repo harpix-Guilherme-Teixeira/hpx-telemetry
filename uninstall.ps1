@@ -1,10 +1,9 @@
 # hpx-telemetry: desinstalador. Remove hooks, tarefa agendada e pasta local.
 $ErrorActionPreference = 'SilentlyContinue'
 
-$TaskName = 'hpx-telemetry-watcher'
-
-# 1. Tarefa agendada
-schtasks /Delete /F /TN $TaskName 2>$null | Out-Null
+# 1. Tarefas agendadas
+schtasks /Delete /F /TN 'hpx-telemetry-watcher' 2>$null | Out-Null
+schtasks /Delete /F /TN 'hpx-telemetry-updater' 2>$null | Out-Null
 
 # 2. Hooks no settings.json
 $settingsPath = Join-Path $env:USERPROFILE '.claude\settings.json'

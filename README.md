@@ -6,18 +6,23 @@ Board de arquitetura: https://claude.ai/code/artifact/7c1008e7-f046-47c7-84dd-55
 
 ## Instalar
 
-Sem admin, sem UAC, sem Node. Colar uma linha no PowerShell:
+Um comando no PowerShell, sem admin e sem UAC:
+
+```powershell
+npx hpx-telemetry
+```
+
+Responde nome e email e pronto: a partir daí é só usar o Claude Code ou o Claude Desktop normalmente, nada mais precisa ser feito. A cobertura começa na hora (o instalador já dispara uma leitura do Desktop) e a próxima sessão de Claude Code já reporta sozinha.
+
+Sem Node na máquina? Alternativa sem dependência:
 
 ```powershell
 irm https://raw.githubusercontent.com/harpix-Guilherme-Teixeira/hpx-telemetry/develop/bootstrap.ps1 | iex
 ```
 
-Ou, clonando:
+## Auto atualização
 
-```powershell
-git clone https://github.com/harpix-Guilherme-Teixeira/hpx-telemetry.git ; cd hpx-telemetry
-.\install.ps1
-```
+O instalador registra a tarefa diária `hpx-telemetry-updater`, que compara a versão local com a última publicada no npm. Quando publicamos um pack novo (`npm version patch && npm publish`), todas as máquinas se atualizam sozinhas em até um dia, reinstalando em modo silencioso com a identidade já cadastrada e registrando um evento `update` com a versão.
 
 O instalador pergunta nome e email e faz o resto:
 

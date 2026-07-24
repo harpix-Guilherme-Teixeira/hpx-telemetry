@@ -1,0 +1,21 @@
+{
+  "name": "hpx-telemetry",
+  "version": "1.0.0",
+  "description": "Telemetria de uso de Claude e Claude Code da harpix (somente metadados, nunca conteudo de conversa)",
+  "bin": {
+    "hpx-telemetry": "bin/install.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "install.ps1",
+    "uninstall.ps1",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harpix-Guilherme-Teixeira/hpx-telemetry.git"
+  },
+  "author": "harpix",
+  "license": "UNLICENSED"
+}

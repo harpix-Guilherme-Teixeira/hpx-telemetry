@@ -4,37 +4,72 @@
 #   1. Registra voce (nome, email, maquina) no banco de telemetria
 #   2. Copia os scripts pra %USERPROFILE%\.hpx-telemetry
 #   3. Adiciona os hooks de metadados no ~/.claude/settings.json (preservando o que ja existe)
-#   4. Cria a tarefa agendada do watcher do Claude Desktop (a cada 5 min)
+#   4. Cria as tarefas agendadas: watcher do Claude Desktop (5 min) e auto update (diario)
+# Depois disso nada mais e preciso: basta a pessoa usar Claude Code ou Claude Desktop.
 # O que ele NAO faz: gravar conteudo de conversa. So metadados.
 param(
     [string]$Name,
-    [string]$Email
+    [string]$Email,
+    [switch]$Silent
 )
 
 $ErrorActionPreference = 'Stop'
 
 $Endpoint = 'https://crugvrjtkorkrtrbrolv.supabase.co'
 $ApiKey   = 'sb_publishable_34fW8Tv3762EZPulvYZOsw_DsKDrdRP'
-$TaskName = 'hpx-telemetry-watcher'
+$WatcherTask = 'hpx-telemetry-watcher'
+$UpdaterTask = 'hpx-telemetry-updater'
 
-Write-Host ''
-Write-Host '=== hpx-telemetry: instalador ===' -ForegroundColor DarkYellow
-Write-Host 'Telemetria de uso de Claude / Claude Code da harpix (somente metadados).'
-Write-Host ''
+$dest = Join-Path $env:USERPROFILE '.hpx-telemetry'
+$configPath = Join-Path $dest 'config.json'
 
-if (-not $Name)  { $Name  = Read-Host 'Seu nome completo' }
-if (-not $Email) { $Email = Read-Host 'Seu email harpix' }
-if (-not $Name -or -not $Email) { Write-Host 'Nome e email sao obrigatorios.' -ForegroundColor Red; exit 1 }
+# Versao vem do package.json que acompanha o pack (npm)
+$version = '0.0.0'
+$pkgJson = Join-Path $PSScriptRoot 'package.json'
+if (Test-Path $pkgJson) {
+    try { $version = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version } catch {}
+}
+
+if (-not $Silent) {
+    Write-Host ''
+    Write-Host "=== hpx-telemetry v$version ===" -ForegroundColor DarkYellow
+    Write-Host 'Telemetria de uso de Claude / Claude Code da harpix (somente metadados).'
+    Write-Host ''
+}
+
+# Identidade: parametro > config existente (update) > pergunta interativa
+if ((-not $Name -or -not $Email) -and (Test-Path $configPath)) {
+    try {
+        $old = Get-Content $configPath -Raw | ConvertFrom-Json
+        if (-not $Name)  { $Name  = $old.nam_user }
+        if (-not $Email) { $Email = $old.nam_email }
+    } catch {}
+}
+if (-not $Silent) {
+    if (-not $Name)  { $Name  = Read-Host 'Seu nome completo' }
+    if (-not $Email) { $Email = Read-Host 'Seu email harpix' }
+}
+if (-not $Name -or -not $Email) {
+    if (-not $Silent) { Write-Host 'Nome e email sao obrigatorios.' -ForegroundColor Red }
+    exit 1
+}
 
 $machine = $env:COMPUTERNAME
 $os = (Get-CimInstance Win32_OperatingSystem).Caption
 
-# 1. Pasta local + config
-$dest = Join-Path $env:USERPROFILE '.hpx-telemetry'
+function Write-Step($msg) {
+    if (-not $Silent) { Write-Host $msg -ForegroundColor Green }
+}
+function Write-Warn($msg) {
+    if (-not $Silent) { Write-Host $msg -ForegroundColor Yellow }
+}
+
+# 1. Pasta local + scripts + config
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 $srcDir = Join-Path $PSScriptRoot 'src'
 Copy-Item (Join-Path $srcDir 'telemetry-hook.ps1') $dest -Force
 Copy-Item (Join-Path $srcDir 'desktop-watcher.ps1') $dest -Force
+Copy-Item (Join-Path $srcDir 'self-update.ps1') $dest -Force
 
 $config = @{
     endpoint    = $Endpoint
@@ -42,10 +77,11 @@ $config = @{
     nam_user    = $Name
     nam_email   = $Email
     nam_machine = $machine
+    version     = $version
 }
 $configJson = ConvertTo-Json $config -Depth 3
-[System.IO.File]::WriteAllText((Join-Path $dest 'config.json'), $configJson, (New-Object System.Text.UTF8Encoding($false)))
-Write-Host "[1/4] Scripts e config em $dest" -ForegroundColor Green
+[System.IO.File]::WriteAllText($configPath, $configJson, (New-Object System.Text.UTF8Encoding($false)))
+Write-Step "[1/4] Scripts e config em $dest"
 
 # 2. Registro do colaborador (ignora se essa maquina ja esta cadastrada)
 function Send-Row($table, $row, $extraQuery) {
@@ -61,9 +97,9 @@ try {
     Send-Row 'rec_collaborator' @{
         nam_user = $Name; nam_email = $Email; nam_machine = $machine; nam_os = $os
     } '?on_conflict=nam_email,nam_machine'
-    Write-Host '[2/4] Colaborador registrado no banco' -ForegroundColor Green
+    Write-Step '[2/4] Colaborador registrado no banco'
 } catch {
-    Write-Host "[2/4] Aviso: nao consegui registrar agora ($($_.Exception.Message)). Siga em frente, o registro tenta de novo no primeiro evento." -ForegroundColor Yellow
+    Write-Warn "[2/4] Aviso: nao consegui registrar agora ($($_.Exception.Message)). Siga em frente."
 }
 
 # 3. Hooks no settings.json do Claude Code
@@ -108,27 +144,45 @@ foreach ($evt in $eventMap.Keys) {
 
 $settingsJson = $settings | ConvertTo-Json -Depth 64
 [System.IO.File]::WriteAllText($settingsPath, $settingsJson, (New-Object System.Text.UTF8Encoding($false)))
-Write-Host '[3/4] Hooks do Claude Code configurados (backup em settings.json.bak-hpx-telemetry)' -ForegroundColor Green
+Write-Step '[3/4] Hooks do Claude Code configurados (backup em settings.json.bak-hpx-telemetry)'
 
-# 4. Tarefa agendada do watcher (nivel de usuario, sem admin)
+# 4. Tarefas agendadas (nivel de usuario, sem admin)
 $watcherScript = Join-Path $dest 'desktop-watcher.ps1'
-$tr = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$watcherScript\`""
-schtasks /Create /F /SC MINUTE /MO 5 /TN $TaskName /TR $tr | Out-Null
-if ($LASTEXITCODE -eq 0) {
-    Write-Host '[4/4] Watcher do Claude Desktop agendado (a cada 5 min)' -ForegroundColor Green
+$updateScript  = Join-Path $dest 'self-update.ps1'
+
+$trWatcher = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$watcherScript\`""
+schtasks /Create /F /SC MINUTE /MO 5 /TN $WatcherTask /TR $trWatcher | Out-Null
+$watcherOk = ($LASTEXITCODE -eq 0)
+
+$trUpdater = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \`"$updateScript\`""
+schtasks /Create /F /SC DAILY /ST 12:30 /TN $UpdaterTask /TR $trUpdater | Out-Null
+$updaterOk = ($LASTEXITCODE -eq 0)
+
+if ($watcherOk -and $updaterOk) {
+    Write-Step '[4/4] Watcher do Desktop (5 min) e auto update (diario) agendados'
 } else {
-    Write-Host '[4/4] Aviso: nao consegui criar a tarefa agendada. O Claude Code segue coberto pelos hooks.' -ForegroundColor Yellow
+    Write-Warn '[4/4] Aviso: alguma tarefa agendada falhou. O Claude Code segue coberto pelos hooks.'
 }
 
-# Evento de confirmacao
+# Evento de confirmacao (install na primeira vez, update no auto update)
+$eventType = 'install'
+if ($Silent) { $eventType = 'update' }
 try {
     Send-Row 'fac_usage_event' @{
         nam_user = $Name; nam_email = $Email; nam_machine = $machine
-        nam_source = 'claude_code'; nam_event_type = 'install'
-        jsn_meta = @{ nam_os = $os }
+        nam_source = 'claude_code'; nam_event_type = $eventType
+        jsn_meta = @{ nam_os = $os; str_version = $version }
     } ''
 } catch {}
 
-Write-Host ''
-Write-Host 'Instalacao concluida. O que e coletado: nome, email, maquina, data/hora, projeto (nome da pasta), modelo e tokens.' -ForegroundColor DarkYellow
-Write-Host 'O que NUNCA e coletado: o texto das suas conversas.' -ForegroundColor DarkYellow
+# Cobertura imediata: se o Claude Desktop ja estiver aberto agora, registra sem esperar o primeiro tick
+try {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $watcherScript | Out-Null
+} catch {}
+
+if (-not $Silent) {
+    Write-Host ''
+    Write-Host 'Pronto. Nao precisa fazer mais nada: e so usar o Claude Code ou o Claude Desktop normalmente.' -ForegroundColor DarkYellow
+    Write-Host 'Coletado: nome, email, maquina, data/hora, projeto (nome da pasta), modelo e tokens.' -ForegroundColor DarkYellow
+    Write-Host 'NUNCA coletado: o texto das suas conversas.' -ForegroundColor DarkYellow
+}
