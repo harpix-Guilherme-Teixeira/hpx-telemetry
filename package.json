@@ -1,6 +1,6 @@
 {
   "name": "hpx-telemetry",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Telemetria de uso de Claude e Claude Code da harpix (somente metadados, nunca conteudo de conversa)",
   "bin": {
     "hpx-telemetry": "bin/install.js"
