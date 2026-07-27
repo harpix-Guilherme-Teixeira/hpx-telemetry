@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Telemetria de uso de IA, como funciona</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --laranja:#EF5727;
+    --tinta:#212123;
+    --cinza:#5B5B60;
+    --linha:#E4E4E7;
+    --fundo-suave:#FAFAF9;
+  }
+  @page{ size:A4; margin:16mm 15mm 18mm 15mm; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:"Geist","Segoe UI",system-ui,sans-serif;
+    font-weight:400; font-size:10.2pt; line-height:1.55;
+    color:var(--tinta); -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  h1,h2,h3{ font-family:"Baloo 2","Segoe UI",system-ui,sans-serif; font-weight:600; line-height:1.15; margin:0; }
+  h1{ font-size:23pt; letter-spacing:-.2px; }
+  h2{ font-size:13.5pt; margin:20px 0 7px; padding-top:11px; border-top:2px solid var(--tinta); }
+  h3{ font-size:10.8pt; margin:13px 0 4px; color:var(--tinta); }
+  p{ margin:0 0 8px; }
+  a{ color:var(--laranja); text-decoration:none; }
+  strong{ font-weight:600; }
+  code{ font-family:"Consolas","Courier New",monospace; font-size:8.9pt;
+        background:#F4F4F5; border:1px solid var(--linha); border-radius:3px; padding:1px 4px; }
+
+  /* capa */
+  .capa{ border-bottom:3px solid var(--laranja); padding-bottom:14px; margin-bottom:6px; }
+  .marca{ display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; }
+  .marca svg{ height:26px; width:auto; }
+  .selo{ font-size:7.6pt; letter-spacing:1.3px; text-transform:uppercase; color:var(--cinza); font-weight:500; }
+  .sub{ font-size:11.5pt; color:var(--cinza); margin-top:5px; font-weight:300; }
+  .meta{ display:flex; gap:26px; margin-top:14px; font-size:8.4pt; color:var(--cinza); }
+  .meta b{ display:block; color:var(--tinta); font-weight:600; font-size:9.2pt; }
+
+  /* destaque */
+  .principio{ background:var(--fundo-suave); border-left:4px solid var(--laranja);
+              padding:12px 15px; margin:16px 0; }
+  .principio p{ margin:0; }
+  .principio .titulo{ font-family:"Baloo 2",sans-serif; font-weight:600; font-size:11pt; margin-bottom:3px; }
+
+  /* tabelas */
+  table{ width:100%; border-collapse:collapse; margin:8px 0 12px; font-size:9.1pt; }
+  th{ text-align:left; font-weight:600; font-size:8pt; text-transform:uppercase;
+      letter-spacing:.6px; color:var(--cinza); border-bottom:1.5px solid var(--tinta);
+      padding:0 8px 5px 0; }
+  td{ padding:6px 8px 6px 0; border-bottom:1px solid var(--linha); vertical-align:top; }
+  td.campo{ font-family:"Consolas",monospace; font-size:8.5pt; white-space:nowrap; }
+
+  /* duas colunas coleta */
+  .duas{ display:flex; gap:14px; margin:10px 0 4px; }
+  .col{ flex:1; border:1px solid var(--linha); border-radius:6px; padding:11px 13px; }
+  .col.sim{ border-top:3px solid var(--laranja); }
+  .col.nao{ border-top:3px solid var(--tinta); }
+  .col h3{ margin:0 0 6px; }
+  .col ul{ margin:0; padding-left:15px; }
+  .col li{ margin-bottom:3px; }
+
+  ul{ margin:0 0 8px; padding-left:17px; }
+  li{ margin-bottom:3px; }
+
+  .nota{ font-size:8.6pt; color:var(--cinza); font-style:italic; }
+  .quebra{ page-break-before:always; }
+  .rodape{ margin-top:22px; padding-top:9px; border-top:1px solid var(--linha);
+           font-size:8pt; color:var(--cinza); }
+  .fase{ display:inline-block; background:var(--laranja); color:#fff; font-size:7.4pt;
+         font-weight:600; letter-spacing:.5px; padding:2px 7px; border-radius:99px;
+         text-transform:uppercase; vertical-align:2px; margin-left:7px; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <div class="marca">
+    <svg viewBox="95 348 625 212" xmlns="http://www.w3.org/2000/svg" aria-label="harpix">
+      <g fill="#212123">
+        <path d="M442.59,494.01l-.1,60.98-21.01-.02.13-107.62c3.09-24.9,21.58-43.6,46.1-47.12l10.31-.74c16.06.16,30.57,6.72,41.21,18.85,12.37,14.11,16.18,33.23,11.36,51.44-5.58,21.42-23.16,36.31-45.02,39.1-16.02,2.05-30.94-2.9-42.99-14.88ZM501.83,478.24c13.79-14.65,11.58-38.71-2.62-50.36-13.13-10.77-31.77-10.75-44.71.46-14.34,12.42-15.45,34.62-3.31,48.77,13.42,15.65,36.78,15.86,50.65,1.13Z"/>
+        <path d="M204.18,506.88l-21.09.12-.43-55.85c-.08-10.01-4.02-19.53-12.03-25.56-11.37-8.55-27.81-7.35-38.33,2.2-6.83,6.2-9.53,14.86-10.7,23.94l-.11,55.26-20.99-.03v-152.91s21-.02,21-.02l.05,59.38c9.98-9.88,23.64-14.92,37.51-13.71,24.76-.13,42.79,18.34,44.44,42.54l.68,64.64Z"/>
+        <path d="M311.34,507.03l-.32-18.42c-4.67,7.64-10.88,12.82-19.06,16.44-23.17,10.26-50.19,1.44-63.51-20.36-6.41-10.49-9.53-22.91-8.42-35.11,2.61-28.68,25.87-49.86,54.36-50l10.97.65c24.95,3.82,44.15,23.61,45.75,49.38l.47,57.21-20.24.22ZM298.95,479.57c13.63-12.77,14.79-34.42,2.15-48.76-12.62-14.31-34.72-15.16-48.79-2.2-12.04,11.09-14.1,28.84-6.33,43.16,5.46,10.07,15.43,15.89,26.67,16.93,9.69.9,19.05-2.34,26.3-9.13Z"/>
+        <path d="M709.34,506.46l-23.85.56-23.47-34.99-3.55-8.43-9.6-.02c-1.82,5.94-4.77,10.83-8.21,15.85l-18.83,27.55-23.88-.09,27.37-41.26c5.07-7.65,5.15-15.83-.56-23.22l-26.62-40.32,24.2-.05,21.11,31.47c2.2,3.27,3.76,6.44,4.76,10.49l10.96-.03c1.42-4.15,3.03-7.65,5.39-11.22l20.36-30.7h24.57s-27.26,40.88-27.26,40.88c-4.5,6.75-4.98,14.6-.7,21.64l27.82,41.88Z"/>
+        <path d="M375.08,444.72l-.1,62.27h-21.01s.11-70.19.11-70.19c2.01-13.76,8.25-25.93,20.55-32.24s27.06-6.39,40.06-.82l.04,21.13c-12.98-6.58-30.26-6.69-36.46,6.69-2.27,3.86-2.18,8.26-3.18,13.17Z"/>
+        <polygon points="574.5 506.72 552.83 506.84 552.79 402.04 574.51 402.03 574.5 506.72"/>
+        <path d="M562.47,381.47c-9.58-1.18-14.74-9.91-12.23-18.28s11.71-12.53,19.6-8.25c5.81,3.15,8.82,9.94,7.15,16.11s-7.48,11.3-14.52,10.43Z"/>
+      </g>
+    </svg>
+    <span class="selo">Documento interno</span>
+  </div>
+
+  <h1>Telemetria de uso de IA</h1>
+  <div class="sub">Como funciona, o que é coletado e o que nunca é</div>
+
+  <div class="meta">
+    <div><b>v1.3.0</b>versão do pack</div>
+    <div><b>27/07/2026</b>última atualização</div>
+    <div><b>Dados &amp; IA</b>time responsável</div>
+    <div><b>HDI-175</b>referência no Jira</div>
+  </div>
+</div>
+
+<h2>1. Para que serve</h2>
+<p>A telemetria mede <strong>quanto e como a IA é usada no dia a dia do time</strong>, com dado real em vez de percepção. O objetivo é sustentar com evidência a discussão de eficiência com IA no comitê e no conselho, e enxergar onde a adoção precisa de apoio.</p>
+<p>Ela responde perguntas como: quantas pessoas usam IA de fato, com que frequência, em quais projetos, com quais ferramentas, e o que mudou na entrega depois que cada pessoa passou a usar.</p>
+
+<div class="principio">
+  <div class="titulo">O princípio inegociável</div>
+  <p>A telemetria coleta <strong>apenas metadados de uso</strong>. Ela nunca coleta, transmite ou armazena o texto das suas conversas, o conteúdo dos seus arquivos ou o seu código. Isso não é uma limitação temporária, é uma decisão de projeto que não está prevista para mudar.</p>
+</div>
+
+<h2>2. O que é e o que não é coletado</h2>
+
+<div class="duas">
+  <div class="col sim">
+    <h3>É coletado</h3>
+    <ul>
+      <li>Nome, e-mail e time</li>
+      <li>Nome da máquina e sistema operacional</li>
+      <li>Data e hora de cada evento</li>
+      <li>Modelo usado e contagem de tokens</li>
+      <li>Nome da pasta do projeto, só o último nível</li>
+      <li>Qual ferramenta de IA está em uso</li>
+      <li>Rótulo de trabalho ou pessoal</li>
+      <li>IP de origem e cidade aproximada</li>
+      <li>Nomes dos servidores MCP configurados</li>
+    </ul>
+  </div>
+  <div class="col nao">
+    <h3>Nunca é coletado</h3>
+    <ul>
+      <li>Texto de pergunta ou de resposta</li>
+      <li>Código, diff ou conteúdo de arquivo</li>
+      <li>Caminho completo de pastas</li>
+      <li>Nome de branch</li>
+      <li>Título de aba do navegador</li>
+      <li>Título de conversa</li>
+      <li>Histórico de navegação</li>
+      <li>Captura de tela</li>
+      <li>Digitação ou uso do teclado</li>
+    </ul>
+  </div>
+</div>
+
+<p class="nota">O nome da pasta do projeto é guardado como contexto, por exemplo <code>hpx-sc-front</code>, nunca o caminho inteiro da sua máquina.</p>
+
+<h2>3. Como funciona por dentro</h2>
+<p>O pack observa três superfícies diferentes, porque cada ferramenta expõe o uso de um jeito.</p>
+
+<h3>Claude Code, por eventos da própria ferramenta</h3>
+<p>São registrados o início e o fim de cada sessão e cada resposta concluída. O modelo e a contagem de tokens são lidos do registro local da sessão. Nenhum trecho de conversa é lido.</p>
+
+<h3>Aplicativos instalados, por presença de processo</h3>
+<p>A cada 15 minutos o pack verifica quais aplicativos de IA estão abertos, por exemplo Claude Desktop, ChatGPT, Cursor, Copilot, Windsurf e Perplexity. Ele enxerga apenas que o programa está em execução, nada do que acontece dentro dele.</p>
+
+<h3>IA no navegador, por classificação local do título da aba</h3>
+<p>Ferramentas usadas pelo navegador, como claude.ai e chatgpt.com, não aparecem como aplicativo. Para cobri-las, o pack lê o título da aba ativa, <strong>compara com uma lista de nomes conhecidos e descarta o texto imediatamente, na sua máquina</strong>. Do computador sai apenas um rótulo como <code>claude_web</code> ou <code>chatgpt_web</code>. O título em si nunca trafega e nunca é armazenado, exatamente como acontece com o rótulo de trabalho ou pessoal.</p>
+
+<h2>4. Onde os dados ficam e quem lê</h2>
+<p>Os eventos vão para um banco de dados da harpix, hospedado no Supabase, dedicado a esse fim.</p>
+<table>
+  <tr><th style="width:34%">Aspecto</th><th>Como está configurado</th></tr>
+  <tr><td>Escrita</td><td>A chave que fica na sua máquina só consegue <strong>inserir</strong>. Ela não lê e não altera nada.</td></tr>
+  <tr><td>Leitura</td><td>Feita pelo painel de acompanhamento, destinado à liderança do projeto.</td></tr>
+  <tr><td>Hora do evento</td><td>Carimbada pelo servidor, não pela sua máquina.</td></tr>
+  <tr><td>Uso previsto</td><td>Leitura de adoção e de eficiência agregada, e apoio a quem precisa de ajuda para adotar.</td></tr>
+  <tr><td>Uso vedado</td><td>Não pode ser usado como insumo de avaliação formal de desempenho, promoção ou desligamento.</td></tr>
+</table>
+
+<h2 class="quebra">5. Instalar, atualizar e desinstalar</h2>
+<table>
+  <tr><th style="width:26%">Ação</th><th>Como</th></tr>
+  <tr><td>Instalar</td><td><code>npx hpx-telemetry</code>. Não pede senha de administrador e pergunta seu nome, e-mail e time.</td></tr>
+  <tr><td>Atualizar</td><td>Automático, uma vez por dia. Para forçar na hora, <code>npx hpx-telemetry@latest</code>.</td></tr>
+  <tr><td>Desinstalar</td><td><code>uninstall.ps1</code>, na pasta <code>.hpx-telemetry</code> do seu usuário. Remove tudo e avisa o banco.</td></tr>
+</table>
+<p>Desinstalar é sempre uma opção e não exige justificativa. O desligamento é registrado apenas para que a liderança saiba qual é a base instalada real.</p>
+
+<h2>6. Como os indicadores são calculados</h2>
+
+<h3>Score de uso</h3>
+<p>Um índice de 0 a 100 combinando três componentes, guardados também separadamente:</p>
+<ul>
+  <li><strong>Intensidade</strong>, com peso 4 em 10. Volume de interações e de tokens, normalizado pela empresa.</li>
+  <li><strong>Consistência</strong>, com peso 3 em 10. Dias ativos sobre dias úteis nos últimos 30 dias.</li>
+  <li><strong>Diversidade</strong>, com peso 3 em 10. Variedade de projetos, fontes e servidores MCP.</li>
+</ul>
+<p class="nota">Quem começou a usar há pouco tempo tende a ter consistência baixa, que sobe naturalmente com o histórico. O score mede uso, não qualidade de trabalho.</p>
+
+<h3>Localização</h3>
+<p>Os endereços de rede do escritório são cadastrados manualmente. Qualquer outro endereço é tratado como trabalho remoto, com cidade aproximada obtida do provedor de internet. A precisão é de nível de cidade, não de endereço: a telemetria não sabe e não tem como saber onde você está exatamente.</p>
+
+<h2>7. Limites conhecidos do método</h2>
+<p>Registrados aqui de propósito, para que os números sejam lidos com a margem certa.</p>
+<ul>
+  <li>No navegador, apenas a <strong>aba em primeiro plano</strong> de cada janela é observada. Uso em aba de fundo não é contabilizado.</li>
+  <li>A verificação acontece a cada 15 minutos, então o que se mede é <strong>presença amostrada</strong>, não duração exata de uso.</li>
+  <li>Aplicativo aberto não significa aplicativo em uso. Uma janela esquecida aberta conta como presença.</li>
+  <li>A identificação de ferramenta no navegador depende de a página se identificar no título, o que nem sempre acontece quando a pessoa não está autenticada.</li>
+  <li>Uso de IA em celular, em máquina pessoal ou fora das ferramentas conhecidas não é coberto.</li>
+</ul>
+
+<h2>8. Histórico de versões</h2>
+<table>
+  <tr><th style="width:15%">Versão</th><th>O que mudou</th></tr>
+  <tr><td class="campo">1.0.0</td><td>Primeira coleta, Claude Code e Claude Desktop, com instalação sem administrador.</td></tr>
+  <tr><td class="campo">1.1.0</td><td>Time perguntado na instalação e origem de rede carimbada no servidor.</td></tr>
+  <tr><td class="campo">1.2.0</td><td>Painel de acompanhamento, score de uso, localização, rótulo de trabalho ou pessoal e inventário de servidores MCP.</td></tr>
+  <tr><td class="campo">1.2.1</td><td>Correção de desempenho. A verificação ficou 36 vezes mais leve e o intervalo passou para 15 minutos.</td></tr>
+  <tr><td class="campo">1.2.2</td><td>Fim do piscar de janela nas tarefas agendadas.</td></tr>
+  <tr><td class="campo">1.2.3</td><td>Desinstalação passa a avisar o banco, para refletir a base instalada real.</td></tr>
+  <tr><td class="campo">1.3.0</td><td>Cobertura de IA usada pelo navegador, por classificação local do título da aba.</td></tr>
+</table>
+
+<div class="rodape">
+  Documento interno da harpix, time de Dados &amp; IA. Referência no Jira: HDI-175.
+  Dúvidas sobre o que é coletado, ou pedido de exclusão dos seus dados, devem ser encaminhados ao time responsável.
+  Este documento descreve o funcionamento técnico e não substitui o comunicado formal de privacidade.
+</div>
+
+</body>
+</html>

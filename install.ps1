@@ -174,22 +174,41 @@ Write-Step '[3/4] Hooks do Claude Code configurados (backup em settings.json.bak
 
 # 4. Tarefas agendadas (nivel de usuario, sem admin)
 # Lancadas via wscript + run-hidden.vbs pra rodar SEM flash de janela de console.
+#
+# ATENCAO: em maquina gerida, GPO ou EDR pode NEGAR a criacao de tarefa. O
+# schtasks escreve no stderr e, com ErrorActionPreference = Stop, isso vira erro
+# terminante e matava o instalador aqui no meio: a maquina ficava com o config
+# gravado, sem agendamento, sem evento de install e sem aviso pra pessoa.
+# Por isso cada chamada vai em try/catch e confere o codigo de saida na mao.
+# O catch cobre os dois modos de falha: schtasks recusado (stderr vira erro
+# terminante) e schtasks impedido de sequer iniciar (ApplicationFailedException).
+# O resultado viaja no evento de install pra que a maquina apareca no painel
+# como instalada porem sem agendamento, em vez de sumir calada.
 $watcherScript = Join-Path $dest 'desktop-watcher.ps1'
 $updateScript  = Join-Path $dest 'self-update.ps1'
 $hiddenVbs     = Join-Path $dest 'run-hidden.vbs'
 
 $trWatcher = "wscript.exe \`"$hiddenVbs\`" \`"$watcherScript\`""
-schtasks /Create /F /SC MINUTE /MO 15 /TN $WatcherTask /TR $trWatcher | Out-Null
-$watcherOk = ($LASTEXITCODE -eq 0)
+$watcherOk = $false
+try {
+    schtasks /Create /F /SC MINUTE /MO 15 /TN $WatcherTask /TR $trWatcher | Out-Null
+    $watcherOk = ($LASTEXITCODE -eq 0)
+} catch { $watcherOk = $false }
 
 $trUpdater = "wscript.exe \`"$hiddenVbs\`" \`"$updateScript\`""
-schtasks /Create /F /SC DAILY /ST 12:30 /TN $UpdaterTask /TR $trUpdater | Out-Null
-$updaterOk = ($LASTEXITCODE -eq 0)
+$updaterOk = $false
+try {
+    schtasks /Create /F /SC DAILY /ST 12:30 /TN $UpdaterTask /TR $trUpdater | Out-Null
+    $updaterOk = ($LASTEXITCODE -eq 0)
+} catch { $updaterOk = $false }
 
 if ($watcherOk -and $updaterOk) {
     Write-Step '[4/4] Watcher do Desktop (15 min) e auto update (diario) agendados'
 } else {
-    Write-Warn '[4/4] Aviso: alguma tarefa agendada falhou. O Claude Code segue coberto pelos hooks.'
+    Write-Warn '[4/4] Aviso: a politica desta maquina bloqueou o agendamento.'
+    Write-Warn '      O Claude Code segue coberto pelos hooks, mas o uso do Claude Desktop'
+    Write-Warn '      e de IA no navegador nao sera registrado, e o auto update nao roda.'
+    Write-Warn '      Avise o time de Dados & IA para tratar esta maquina.'
 }
 
 # Evento de confirmacao (install na primeira vez, update no auto update)
@@ -199,7 +218,12 @@ try {
     Send-Row 'fac_usage_event' @{
         nam_user = $Name; nam_email = $Email; nam_machine = $machine
         nam_source = 'claude_code'; nam_event_type = $eventType
-        jsn_meta = @{ nam_os = $os; str_version = $version }
+        jsn_meta = @{
+            nam_os                = $os
+            str_version           = $version
+            flg_watcher_scheduled = $watcherOk
+            flg_updater_scheduled = $updaterOk
+        }
     }
 } catch {}
 
