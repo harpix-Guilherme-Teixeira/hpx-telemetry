@@ -1,0 +1,31 @@
+# Unifica identidades do time harpix para analise de adocao de IA.
+# Formato: Nome Canonico <email canonico> <email alternativo>
+# Uso: git -c mailmap.file=<este arquivo> log ... com %aE/%aN
+
+# --- Guilherme Teixeira dos Santos (4 identidades) ---
+Guilherme Teixeira dos Santos <guilherme.santos@harpix.com.br>
+Guilherme Teixeira dos Santos <guilherme.santos@harpix.com.br> <guisdomkt@gmail.com>
+Guilherme Teixeira dos Santos <guilherme.santos@harpix.com.br> <agenciagtx1@gmail.com>
+Guilherme Teixeira dos Santos <guilherme.santos@harpix.com.br> <275982475+harpix-guilherme-teixeira@users.noreply.github.com>
+
+# --- Leticia Narciso (3 identidades) ---
+Leticia Narciso <leticia.narciso@harpix.com.br>
+Leticia Narciso <leticia.narciso@harpix.com.br> <leticia.narciso@corp.latorre>
+Leticia Narciso <leticia.narciso@harpix.com.br> <leticianarciso97@gmail.com>
+
+# --- Hugo Ribeiro (3 identidades, uma com ASPAS CURVAS no email, git config quebrado) ---
+Hugo Ribeiro <hugo.ribeiro@harpix.com.br>
+Hugo Ribeiro <hugo.ribeiro@harpix.com.br> <hugo.ribeiro@corp.latorre>
+Hugo Ribeiro <hugo.ribeiro@harpix.com.br> <“hugo.ribeiro@harpix.com.br”>
+
+# --- Gustavo Alexandre (2 identidades) ---
+Gustavo Alexandre <gustavo.silva@harpix.com.br>
+Gustavo Alexandre <gustavo.silva@harpix.com.br> <gustavoalprofissional@gmail.com>
+
+# --- nomes canonicos dos demais ---
+Vitor Arre <vitor.arre@harpix.com.br>
+Gabriel Oliveira <gabriel.oliveira@harpix.com.br>
+Rafael Coimbra <rafael.coimbra@harpix.com.br>
+Willians Oliveira <willians.oliveira@harpix.com.br>
+Guilherme Bressan <guilherme.bressan@harpix.com.br>
+Sergio Alves <sergio.junior@harpix.com.br>
