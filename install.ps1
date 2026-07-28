@@ -71,6 +71,32 @@ if (-not $Name -or -not $Email) {
     exit 1
 }
 
+# Identidade e chave de leitura: nome sujo vira pessoa duplicada no relatorio.
+# Ja aconteceu: "Sergio", "Sergio  " e "Sergio Alves" viraram tres linhas, e um
+# "npx hpx-telemetry version" gravou o nome "version" por cima do certo.
+$Name  = ($Name  -replace '\s+', ' ').Trim()
+$Email = $Email.Trim().ToLowerInvariant()
+
+if ($Email -notmatch '^[^@\s]+@[^@\s]+\.[^@\s]+$') {
+    if (-not $Silent) { Write-Host "'$Email' nao e um email valido." -ForegroundColor Red }
+    exit 1
+}
+
+# Nome invalido NAO pode abortar: no modo silencioso quem roda isso e o auto
+# update, e quem esta com o cadastro sujo e justamente quem mais precisa do pack
+# novo. Aborta-lo congelaria a maquina na versao velha pra sempre. Entao
+# reconstroi o nome a partir do email, que e a chave confiavel.
+if ($Name.Length -lt 2 -or $Name -match '^[-/]' -or
+    $Name -match '^(version|help|install|update|uninstall|silent|true|false)$') {
+    $derivado = (($Email -split '@')[0] -split '[._-]+' |
+        Where-Object { $_ } |
+        ForEach-Object { $_.Substring(0, 1).ToUpperInvariant() + $_.Substring(1) }) -join ' '
+    if (-not $Silent) {
+        Write-Host "Nome '$Name' invalido, usando '$derivado' (derivado do email)." -ForegroundColor Yellow
+    }
+    $Name = $derivado
+}
+
 $machine = $env:COMPUTERNAME
 $os = (Get-CimInstance Win32_OperatingSystem).Caption
 

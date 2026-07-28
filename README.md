@@ -48,6 +48,32 @@ Pra remover tudo: `.\uninstall.ps1`
 
 O que **nunca** é coletado: texto de prompt, texto de resposta, caminho completo de arquivos, conteúdo de repositório.
 
+## Como o watcher decide que uma ferramenta está em uso
+
+Duas superfícies, com regras diferentes e precisões diferentes. Vale conhecer antes de ler qualquer gráfico.
+
+**App instalado.** Conta só quando existe **janela visível**. Processo residente não é uso: o `M365Copilot.exe` do Office Hub fica ligado o tempo todo sem janela e, até a 1.3.1, aparecia como uso em 100% das leituras de todo mundo. O preço da regra é o caminho oposto: app minimizado na bandeja deixa de contar.
+
+**IA no navegador.** O watcher lê o título da janela, classifica na máquina e **descarta o texto**, só o rótulo (`claude_web`, `chatgpt_web`, ...) sai dali. Duas limitações que mudam a leitura:
+
+- enxerga apenas a **aba em foco** no instante da leitura, então é **amostragem**, nunca tempo de uso. Uma pessoa com o Claude aberto o dia todo numa aba de fundo aparece perto de zero.
+- a leitura acontece a cada 15 minutos, então uma conversa curta entre duas leituras não deixa rastro.
+
+Ou seja: presença de `_web` é prova de uso, ausência não é prova de não uso.
+
+## Testes
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\test-titles.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\test-identidade.ps1
+```
+
+Os dois leem as regras direto dos scripts que vão no pack, pra teste e produção não poderem divergir. Pra conferir a detecção na sua máquina sem gravar nada no banco:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File src\desktop-watcher.ps1 -DryRun
+```
+
 ## Banco
 
 Projeto Supabase `crugvrjtkorkrtrbrolv` ("Telemetria do uso de IA").

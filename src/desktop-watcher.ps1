@@ -15,7 +15,10 @@
 # .Path de tudo pesava em maquina com antivirus/EDR. Titulo de janela nao abre
 # handle: custa ~90ms.
 param(
-    [string]$ConfigPath = (Join-Path $env:USERPROFILE '.hpx-telemetry\config.json')
+    [string]$ConfigPath = (Join-Path $env:USERPROFILE '.hpx-telemetry\config.json'),
+    # imprime o que seria enviado e nao envia nada. serve pra conferir deteccao
+    # na propria maquina sem sujar o banco.
+    [switch]$DryRun
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,6 +46,7 @@ try {
     if ($all.Count -eq 0) { exit 0 }
 
     $counts = @{}
+    $hasWindow = @{}
 
     # --- 1) apps de IA instalados -------------------------------------------
     # filtro barato por nome; so nos candidatos abre o caminho pra classificar
@@ -58,7 +62,29 @@ try {
         elseif ($name -match 'copilot') { $tool = 'copilot' }
         elseif ($name -match 'windsurf') { $tool = 'windsurf' }
         elseif ($name -match 'perplexity') { $tool = 'perplexity' }
-        if ($tool) { $counts[$tool] = ($counts[$tool] + 1) }
+        if ($tool) {
+            $counts[$tool] = ($counts[$tool] + 1)
+            # basta UM processo do grupo ter janela: app Electron abre varios
+            # processos filhos e so o principal carrega o titulo.
+            if (-not $hasWindow[$tool]) {
+                $wt = ''
+                try { $wt = "$($p.MainWindowTitle)" } catch {}
+                if ($wt) { $hasWindow[$tool] = $true }
+            }
+        }
+    }
+
+    # Processo residente NAO e uso. Caso real que motivou a regra: o
+    # M365Copilot.exe do Office Hub fica ligado o tempo todo, sem janela, e
+    # fazia o Copilot aparecer em 100% dos ticks de todo mundo (60 de 60 num
+    # dia), virando a "ferramenta mais usada da empresa" sem ninguem abrir.
+    # Descartar o que nao tem janela troca falso positivo garantido por um
+    # possivel falso negativo (app minimizado na bandeja), que e o erro barato.
+    # A checagem de _web e redundante aqui (a parte 2 ainda nem rodou), mas
+    # deixa a poda segura se alguem mover este bloco: aba de navegador nunca
+    # passa por $hasWindow e seria apagada em silencio.
+    foreach ($tool in @($counts.Keys)) {
+        if (-not $tool.EndsWith('_web') -and -not $hasWindow[$tool]) { $counts.Remove($tool) }
     }
 
     # --- 2) IA na web (aba ativa do navegador) ------------------------------
@@ -78,6 +104,12 @@ try {
             # com LRM (U+200E) na frente e o Edge mete zero-width space no meio.
             # Sem isso a comparacao exata falha calada.
             $key = ($seg -replace '\p{C}', '').Trim().ToLowerInvariant()
+            # O Edge gruda "e mais N paginas" no titulo quando a janela tem mais
+            # de uma aba ("Claude e mais 6 paginas - Trabalho - Microsoft Edge"),
+            # e em ingles "and N more pages". Sem cortar esse sufixo o segmento
+            # nunca casa, e quem usa Edge com varias abas, ou seja quase todo
+            # mundo, fica invisivel pra captura web.
+            $key = ($key -replace '\s+(e mais \d+ p.ginas?|and \d+ more pages?)$', '').Trim()
             if ($key -and $WebMarkers.ContainsKey($key)) {
                 $tool = $WebMarkers[$key]
                 $counts[$tool] = ($counts[$tool] + 1)
@@ -85,6 +117,14 @@ try {
             }
         }
         # $title sai de escopo aqui e nunca e enviado
+    }
+
+    if ($DryRun) {
+        if ($counts.Count -eq 0) { Write-Host 'nenhuma ferramenta de IA detectada' }
+        foreach ($tool in $counts.Keys) {
+            Write-Host ("{0,-18} x{1}" -f $tool, $counts[$tool])
+        }
+        exit 0
     }
 
     if ($counts.Count -eq 0) { exit 0 }
@@ -102,7 +142,10 @@ try {
             jsn_meta       = @{
                 num_processes = $counts[$tool]
                 str_surface   = if ($isWeb) { 'browser' } else { 'app' }
-                str_detection = if ($isWeb) { 'window_title' } else { 'process' }
+                # 'process_window' (e nao 'process') marca o cliente que ja exige
+                # janela visivel. E o que separa, na leitura, o dado confiavel do
+                # que veio das versoes <= 1.3.1, que contavam processo residente.
+                str_detection = if ($isWeb) { 'window_title' } else { 'process_window' }
             }
         }
         $json = ConvertTo-Json $payload -Depth 5

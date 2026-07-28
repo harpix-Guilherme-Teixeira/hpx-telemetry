@@ -12,11 +12,17 @@ $SplitPattern = $Matches[1]
 # extrai o bloco do hashtable de marcadores e avalia
 if ($src -notmatch '(?s)\$WebMarkers = (@\{.*?\n\})') { throw 'nao achei o WebMarkers no watcher' }
 $WebMarkers = Invoke-Expression $Matches[1]
+
+# extrai o corte do sufixo de multiplas abas do Edge
+if ($src -notmatch "(?m)-replace\s+'(\\s\+\(e mais[^']+)',\s*''") { throw 'nao achei o corte de sufixo do Edge no watcher' }
+$SufixoAbas = $Matches[1]
+"sufixo em teste: $SufixoAbas"
 ''
 
 function Get-Tool($title) {
     foreach ($seg in ($title -split $SplitPattern)) {
         $key = ($seg -replace '\p{C}', '').Trim().ToLowerInvariant()
+        $key = ($key -replace $SufixoAbas, '').Trim()
         if ($key -and $WebMarkers.ContainsKey($key)) { return $WebMarkers[$key] }
     }
     return $null
@@ -25,6 +31,9 @@ function Get-Tool($title) {
 $em = [string][char]0x2014   # travessao usado por Edge e Firefox
 $en  = [string][char]0x2013
 $lrm = [string][char]0x200E   # left-to-right mark que o Gemini serve no titulo
+$ac  = [string][char]0x00E1   # a com acento agudo, pra montar "paginas" em ASCII
+$pag = "p${ac}ginas"
+$pagina = "p${ac}gina"
 
 $cases = @(
     @{ t = 'Claude - Google Chrome';                                    e = 'claude_web' }
@@ -48,6 +57,15 @@ $cases = @(
     @{ t = 'Telemetria de IA ' + [char]0x00B7 + ' harpix - Google Chrome'; e = $null }
     @{ t = 'fac_usage_event | Table Editor | Supabase - Google Chrome';  e = $null }
     @{ t = '';                                                          e = $null }
+    # Edge com varias abas gruda "e mais N paginas" no titulo. Titulo REAL da
+    # maquina do Gui em 28/07/2026, que a versao 1.3.1 deixava passar batido.
+    @{ t = "Instalacao de skill - Claude e mais 6 ${pag} - Trabalho $em Microsoft Edge"; e = 'claude_web' }
+    @{ t = "ChatGPT e mais 12 ${pag} - Trabalho $em Microsoft Edge";     e = 'chatgpt_web' }
+    @{ t = "Gemini e mais 1 ${pagina} - Trabalho $em Microsoft Edge";    e = 'gemini_web' }
+    @{ t = "Claude and 3 more pages - Work $em Microsoft Edge";          e = 'claude_web' }
+    # cortar o sufixo nao pode criar falso positivo novo
+    @{ t = "Roadmap e mais 2 ${pag} - Trabalho $em Microsoft Edge";      e = $null }
+    @{ t = "Claude Monet e mais 2 ${pag} - Trabalho $em Microsoft Edge"; e = $null }
 )
 
 $fail = 0
